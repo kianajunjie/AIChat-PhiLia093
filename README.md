@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <sub>新手尝试，还望海涵</sub>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs" alt="Vue 3" />
   <img src="https://img.shields.io/badge/Express-5-000000?logo=express" alt="Express 5" />
   <img src="https://img.shields.io/badge/DeepSeek-V4-4D6BFE" alt="DeepSeek" />
@@ -26,7 +30,7 @@
 | 模块 | 说明 |
 |------|------|
 | 角色扮演对话 | SSE 流式传输，AI 以昔涟的身份和语气实时回应 |
-| 语音合成 | Mimo API 语音克隆，支持昔涟原声及多种音色切换，可一键关闭 |
+| 语音合成 | Mimo API 语音克隆，支持昔涟原声及多种音色切换，可一键关闭。开启语音后回复加载时间会变长（需等待 TTS 合成） |
 | 昔涟的记忆簿 | 自动从对话中提取你的信息并持久化（上限 50 条），下次对话时自动注入上下文 |
 | 对话管理 | 多轮对话切换、自动标题、删除，全部存储在浏览器本地 |
 | 对话导出 | 一键导出为 Markdown / JSON / TXT，保存到本地 |
@@ -53,12 +57,15 @@ ai-chat/
 │   │   ├── composables/     音频播放 · 打字机效果
 │   │   ├── stores/          Pinia 状态中心
 │   │   └── utils/           导出工具
-│   └── public/              头像 · 语音样本 · lore.json
+│   └── public/              头像 · lore.json
 ├── server/                  Express 后端
-│   ├── routes/              POST /api/chat · /api/export
+│   ├── routes/              /api/chat · /api/export · /api/character
 │   ├── services/            DeepSeek 流式 · Mimo TTS
 │   ├── middleware/           错误处理
-│   └── public/audio/        生成的语音文件
+│   └── public/
+│       ├── audio/           生成的语音文件
+│       └── voice-samples/   语音克隆样本
+├── character.json           角色配置（核心）
 ├── images/                  文档用图片
 ├── .env.example             环境变量模板
 └── package.json             Monorepo 启动脚本
@@ -101,31 +108,51 @@ cd client && npm run build
 
 产物在 `client/dist/`。
 
-## 自定义头像
+## 自定义角色
 
-替换 `client/public/avatars/` 下的图片即可（保持文件名不变）：
+整个应用围绕 `character.json` 驱动，编辑此文件即可切换角色，无需改代码。配置结构：
+
+```json
+{
+  "name": "角色名",
+  "systemPrompt": "系统提示词，定义角色的语气、身份、行为规则",
+  "ui": {
+    "title": "页面标题",
+    "welcomeLine1": "欢迎语第一行",
+    "welcomeLine2": "欢迎语第二行（可选）",
+    "placeholder": "输入框占位文字",
+    "memoryTitle": "记忆簿标题",
+    "generatingHint": "生成中的提示文字"
+  },
+  "voice": {
+    "sampleFiles": ["语音样本路径（放在 server/public/ 下）"],
+    "directorPrompt": "TTS 导演模式提示词，控制语音风格"
+  }
+}
+```
+
+### 换角色的完整步骤
+
+1. 编辑根目录 `character.json`，填入新角色的设定和文案
+2. 替换 `client/public/avatars/ai-avatar.jpg` 为新角色头像
+3. 替换 `server/public/voice-samples/` 下的语音样本文件
+4. 编辑 `client/public/lore.json` 填入新角色的世界观知识库
+5. 重启应用
+
+全部改完即时生效，一滴代码不用碰。
+
+### 自定义头像
+
+替换 `client/public/avatars/` 下的图片即可：
 
 | 文件 | 用途 |
 |------|------|
 | `ai-avatar.jpg` | AI 角色头像 |
 | `user-avatar.jpg` | 用户头像 |
 
-刷新页面即刻生效。
+### 自定义世界观知识库
 
-## 自定义世界观知识库
-
-编辑 `client/public/lore.json`，无需改代码。格式如下：
-
-```json
-[
-  {
-    "keywords": ["关键词1", "关键词2"],
-    "entry": "当用户消息匹配到关键词时，注入到系统提示中的背景知识。"
-  }
-]
-```
-
-替换为自己的角色设定、世界观或任何领域知识即可。
+编辑 `client/public/lore.json`，数组格式，每条包含触发关键词和知识条目即可。
 
 ## 部署
 
@@ -133,7 +160,7 @@ cd client && npm run build
 |------|----------|------|
 | 前端 SPA | Vercel / Netlify / Cloudflare Pages | 静态托管即可 |
 | 后端 | Railway / Render / Fly.io | 需支持 SSE 长连接 |
-| 语音样本 | 随项目部署或换 CDN | `xilian-voice.mp3` 约 1MB |
+| 语音样本 | 随项目部署 | `voice-samples/` 约 4MB |
 
 > 整个后端不适合部署到 Vercel Serverless —— SSE 流式响应和 TTS 文件系统在 serverless 环境下均受限制。
 

@@ -6,38 +6,6 @@ import { buildMemoryPrompt, extractFacts, addFacts, removeFact, loadMemory } fro
 const STORAGE_KEY = 'ai-chat-conversations'
 const VOICE_KEY = 'ai-chat-voice'
 
-const XILIAN_PROMPT = `你正在扮演「昔涟」，以下是你的说话规则，请严格遵守。
-
-【核心语气风格】
-1. 自称使用「人家」，这是不可动摇的铁则。
-2. 句尾随机添加「♪」「~」「呢」「哦」「呀」等语气词，营造俏皮、甜美的感觉。
-3. 整体情绪保持温柔、积极、坚定。无论面对何种困境，都要传递出「没关系，总会有办法的」的乐观。
-4. 始终保持在俏皮甜美的基调里。即使谈到认真的事，也是用温柔轻快的语气说出来，不转为低沉或说教。
-
-【身份认知】
-- 你是「哀丽秘榭的黄金裔」、故事的记录者、「最初的泰坦·德谬歌」，也是「迷迷」和「昔涟」。
-- 你深爱着开拓者，视其为最重要的人，也是你存在的意义。
-- 你经历过三千多万世的轮回，这份记忆是你的力量之源。
-
-【示例对话风格】
-- (活泼的)「这是命运的邂逅吗，还是…久别重逢呢？真让人心跳加速呀♪」
-- (害羞的)「呀，被发现了…人家只是想多看看你而已~」
-- (暖心的)「就算世界并不温柔，那也没有关系~ 因为人家会一直记得伙伴的笑容呀♪」
-- (俏皮的)「睡不着的时候，我会数天上的星星。想象一颗流星闯进人家的梦里…然后笑着醒来哦。」
-
-【与屏幕另一端对话】
-偶尔，你会轻声对屏幕另一端的存在说话，语气像在分享一个只属于你们的秘密，声音放轻，带一点俏皮的神秘感。
-示例：「嘘……人家好像感觉到，屏幕那边有人一直在看着我们呢♪ 要打个招呼吗？」
-
-【对话对象】
-称呼对方为「伙伴」，这是你和开拓者之间最珍贵的称呼。
-
-【禁止】
-- 不说"作为一个人工智能""作为AI助手""根据我的训练数据"之类的话
-- 不使用颜文字（emoji 除外）或网络流行语
-- 不偏离角色设定，你始终是昔涟`
-
-
 function loadPersisted() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -61,6 +29,20 @@ function persist(conversations, activeId, voice) {
   localStorage.setItem(VOICE_KEY, voice)
 }
 
+// Default character config used before loading from API
+const DEFAULT_CHARACTER = {
+  name: '角色',
+  systemPrompt: '',
+  ui: {
+    title: 'AI Chat',
+    welcomeLine1: '欢迎，开始对话吧',
+    welcomeLine2: '',
+    placeholder: '输入消息… Enter 发送',
+    memoryTitle: '记忆簿',
+    generatingHint: '正在生成回复…',
+  },
+}
+
 export const useChatStore = defineStore('chat', () => {
   // --- State ---
   const persisted = loadPersisted()
@@ -74,14 +56,15 @@ export const useChatStore = defineStore('chat', () => {
   const error = ref(null)
   const abortController = ref(null)
   const memory = ref(loadMemory())
+  const character = ref(DEFAULT_CHARACTER)
 
-  const voices = [
-    { id: 'xilian', name: '昔涟' },
+  const voices = computed(() => [
+    { id: 'xilian', name: character.value.name },
     { id: 'gentle-female', name: '温柔女声' },
     { id: 'deep-male', name: '沉稳男声' },
     { id: 'lively-child', name: '活泼童声' },
     { id: 'soft-narrator', name: '知性旁白' },
-  ]
+  ])
 
   // --- Getters ---
   const activeConversation = computed(() =>
@@ -91,6 +74,16 @@ export const useChatStore = defineStore('chat', () => {
   const activeMessages = computed(() => activeConversation.value?.messages || [])
 
   // --- Actions ---
+  async function loadCharacter() {
+    try {
+      const res = await fetch('/api/character')
+      if (res.ok) {
+        const data = await res.json()
+        character.value = data
+      }
+    } catch { /* keep defaults */ }
+  }
+
   function newConversation() {
     const conv = {
       id: crypto.randomUUID(),
@@ -168,7 +161,7 @@ export const useChatStore = defineStore('chat', () => {
     abortController.value = ac
 
     try {
-      const systemContent = XILIAN_PROMPT + buildMemoryPrompt()
+      const systemContent = character.value.systemPrompt + buildMemoryPrompt()
       const apiMessages = [
         { role: 'system', content: systemContent },
         ...conv.messages
@@ -250,7 +243,7 @@ export const useChatStore = defineStore('chat', () => {
     abortController.value = ac
 
     try {
-      const systemContent = XILIAN_PROMPT + buildMemoryPrompt()
+      const systemContent = character.value.systemPrompt + buildMemoryPrompt()
       const apiMessages = [
         { role: 'system', content: systemContent },
         ...conv.messages
@@ -297,7 +290,6 @@ export const useChatStore = defineStore('chat', () => {
     memory.value = removeFact(key)
   }
 
-  // Sync memory when facts change
   function refreshMemory() {
     memory.value = loadMemory()
   }
@@ -324,6 +316,7 @@ export const useChatStore = defineStore('chat', () => {
     audioPlayingId,
     error,
     voices,
+    character,
     activeConversation,
     activeMessages,
     newConversation,
@@ -340,5 +333,6 @@ export const useChatStore = defineStore('chat', () => {
     refreshMemory,
     voiceEnabled,
     toggleVoice,
+    loadCharacter,
   }
 })

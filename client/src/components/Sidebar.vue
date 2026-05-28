@@ -51,7 +51,7 @@ function formatDate(ts) {
 
     <div v-if="store.memory.facts.length > 0" class="memory-section">
       <div class="memory-header">
-        <span class="memory-title">昔涟的记忆簿</span>
+        <span class="memory-title">{{ store.character.ui.memoryTitle }}</span>
       </div>
       <div class="memory-list">
         <div v-for="fact in store.memory.facts" :key="fact.key" class="memory-item">

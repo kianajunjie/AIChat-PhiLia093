@@ -6,20 +6,82 @@ import { existsSync } from 'node:fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const AUDIO_DIR = join(__dirname, '..', 'public', 'audio')
+const CONFIG_PATH = join(__dirname, '..', '..', 'character.json')
 
 // Voice clone sample cache
-let xilianVoiceData = null
+let voiceDataCache = null
+let characterConfig = null
+
+async function loadCharacterConfig() {
+  if (characterConfig) return characterConfig
+  const raw = await readFile(CONFIG_PATH, 'utf-8')
+  characterConfig = JSON.parse(raw)
+  return characterConfig
+}
+
+function concatWavs(buffers) {
+  if (buffers.length === 0) return null
+  if (buffers.length === 1) return buffers[0]
+
+  // Use first file's header as template
+  const header = buffers[0].subarray(0, 44)
+  const pcmChunks = buffers.map((b) => b.subarray(44))
+  const totalPcm = Buffer.concat(pcmChunks)
+  const totalSize = 44 + totalPcm.length
+
+  const combined = Buffer.alloc(totalSize)
+  // Copy header from first file
+  combined.set(header, 0)
+  // Update RIFF chunk size (offset 4) = totalSize - 8
+  combined.writeUInt32LE(totalSize - 8, 4)
+  // Update data chunk size (offset 40) = totalPcm.length
+  combined.writeUInt32LE(totalPcm.length, 40)
+  // Copy PCM data
+  combined.set(totalPcm, 44)
+
+  return combined
+}
 
 async function loadVoiceSample() {
-  if (xilianVoiceData) return xilianVoiceData
-  const samplePath = join(__dirname, '..', 'public', 'xilian-voice.mp3')
-  if (existsSync(samplePath)) {
-    const buf = await readFile(samplePath)
-    const b64 = buf.toString('base64')
-    xilianVoiceData = `data:audio/mpeg;base64,${b64}`
-    console.log(`Voice sample loaded: ${(buf.length / 1024 / 1024).toFixed(1)} MB`)
+  if (voiceDataCache) return voiceDataCache
+  const config = await loadCharacterConfig()
+  const samplesDir = join(__dirname, '..', 'public')
+
+  // Support both single sample (backward compat) and multiple samples
+  let buf
+  const sampleFiles = config.voice?.sampleFiles
+  if (sampleFiles && sampleFiles.length > 0) {
+    const buffers = []
+    for (const file of sampleFiles) {
+      const samplePath = join(samplesDir, file)
+      if (existsSync(samplePath)) {
+        buffers.push(await readFile(samplePath))
+      }
+    }
+    if (buffers.length > 0) {
+      buf = concatWavs(buffers)
+      console.log(`Voice samples loaded: ${buffers.length} files, combined ${(buf.length / 1024 / 1024).toFixed(1)} MB`)
+    }
+  } else {
+    // Backward compat: single sampleFile
+    const sampleFile = config.voice?.sampleFile || 'xilian-voice.mp3'
+    const samplePath = join(samplesDir, sampleFile)
+    if (existsSync(samplePath)) {
+      buf = await readFile(samplePath)
+      console.log(`Voice sample loaded: ${(buf.length / 1024 / 1024).toFixed(1)} MB`)
+    }
   }
-  return xilianVoiceData
+
+  if (buf) {
+    const ext = buf[0] === 0x52 && buf[1] === 0x49 ? 'wav' : 'mpeg'
+    voiceDataCache = `data:audio/${ext};base64,${buf.toString('base64')}`
+  }
+  return voiceDataCache
+}
+
+async function getVoiceDirector() {
+  const config = await loadCharacterConfig()
+  return config.voice?.directorPrompt || ''
 }
 
 // Preset voice configs for mimo-v2.5-tts
@@ -30,20 +92,6 @@ const VOICE_PRESETS = {
   'soft-narrator':  { voice: '白桦',   style: '用温润知性的男性嗓音，节奏平稳清晰，像深夜电台主播一样娓娓道来。' },
 }
 
-// Xilian voice style — director mode
-const XILIAN_DIRECTOR = `【角色】
-粉发少女昔涟，俏皮甜美的迷迷形态。自称"人家"，爱笑、爱撒娇、爱和伙伴聊天。声音明亮活泼，像撒在湖面上的阳光，跳跃、闪烁、轻巧。
-
-【场景】
-正在和她最喜欢的"伙伴"聊天。没有什么沉重的事，就是开开心心的日常。她在笑，在分享，偶尔眨一下眼睛。
-
-【指导】
-- 语速：轻快活泼，像踩着节拍蹦蹦跳跳。句与句之间流畅自然，不拖不慢。
-- 音色：清亮甜美，发声像在微笑。说到"人家"时有小小的亲密感，说到"伙伴"时带一丝暖意。
-- 句尾细节："♪"时语调跳跃上扬，像开心得快要唱出来；"~"时尾音轻巧延长然后收住；"呢""哦""呀"时轻快收尾，不拖不黏。
-- 咬字：清脆分明，颗颗干净，像糖果从罐子里倒出来，叮叮咚咚。`
-
-
 export async function synthesizeSpeech(text, voiceId = 'xilian') {
   const isXilian = voiceId === 'xilian'
   const baseURL = process.env.MIMO_BASE_URL
@@ -53,13 +101,14 @@ export async function synthesizeSpeech(text, voiceId = 'xilian') {
   if (isXilian) {
     const voiceData = await loadVoiceSample()
     if (!voiceData) {
-      throw new Error('Voice sample not found for Xilian voice clone')
+      throw new Error('Voice sample not found for voice clone')
     }
+    const directorPrompt = await getVoiceDirector()
     model = 'mimo-v2.5-tts-voiceclone'
     body = {
       model,
       messages: [
-        { role: 'user', content: XILIAN_DIRECTOR },
+        { role: 'user', content: directorPrompt },
         { role: 'assistant', content: text },
       ],
       audio: {

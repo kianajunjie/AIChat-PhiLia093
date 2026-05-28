@@ -1,4 +1,6 @@
 <script setup>
+import { useChatStore } from '../stores/chat.js'
+const store = useChatStore()
 </script>
 
 <template>
@@ -21,8 +23,8 @@
         </defs>
       </svg>
     </div>
-    <h2>这是命运的邂逅吗，还是…久别重逢呢？♪</h2>
-    <p>像初遇时那样，再一次呼唤我「昔涟」，好吗？</p>
+    <h2>{{ store.character.ui.welcomeLine1 }}</h2>
+    <p v-if="store.character.ui.welcomeLine2">{{ store.character.ui.welcomeLine2 }}</p>
   </div>
 </template>
 

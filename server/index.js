@@ -9,6 +9,7 @@ import express from 'express'
 import cors from 'cors'
 import chatRoutes from './routes/chat.js'
 import exportRoutes from './routes/export.js'
+import characterRoutes from './routes/character.js'
 import { errorHandler } from './middleware/errorHandler.js'
 const app = express()
 const PORT = process.env.SERVER_PORT || 3001
@@ -22,6 +23,7 @@ app.use('/audio', express.static(join(__dirname, 'public', 'audio')))
 // API routes
 app.use('/api', chatRoutes)
 app.use('/api', exportRoutes)
+app.use('/api', characterRoutes)
 
 // Error handler
 app.use(errorHandler)

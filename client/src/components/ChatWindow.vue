@@ -13,7 +13,7 @@ const store = useChatStore()
   <main class="chat-window">
     <div class="chat-header">
       <h1 class="chat-title">
-        永恒的一页
+        {{ store.character.ui.title }}
       </h1>
       <div class="header-actions">
         <VoiceSelector :class="{ dimmed: !store.voiceEnabled }" />
@@ -40,7 +40,7 @@ const store = useChatStore()
       <Transition name="fade">
         <div v-if="store.isGenerating && store.activeMessages.length > 0" class="generating-hint">
           <TypingIndicator />
-          <span class="hint-text">昔涟正在书写这一页的记忆…</span>
+          <span class="hint-text">{{ store.character.ui.generatingHint }}</span>
           <button class="hint-stop-btn" @click="store.abortGeneration()">停止</button>
         </div>
       </Transition>

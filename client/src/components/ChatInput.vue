@@ -40,7 +40,7 @@ function handleKeydown(e) {
         ref="textareaRef"
         v-model="input"
         class="input-field"
-        placeholder="向昔涟诉说你的故事… Enter 发送♪"
+        :placeholder="store.character.ui.placeholder"
         rows="1"
         :disabled="store.isGenerating"
         @input="autoResize"
