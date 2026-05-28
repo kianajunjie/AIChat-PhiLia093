@@ -1,0 +1,105 @@
+/* CSS Reset & Theme Variables */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Cherry Pink → Teal Gradient Theme (昔涟·永恒的一页) */
+  --bg-gradient: linear-gradient(135deg, #fce4ec 0%, #e8f5f0 40%, #c8eee0 100%);
+  --bg-sidebar: rgba(255, 255, 255, 0.7);
+  --bg-chat: rgba(255, 255, 255, 0.45);
+  --bg-input: rgba(255, 255, 255, 0.85);
+
+  --bubble-user: linear-gradient(135deg, #f08ca8, #a8a4d6);
+  --bubble-ai: linear-gradient(135deg, #7ec8a4, #5ba4c8);
+
+  --accent-pink: #e892a5;
+  --accent-blue: #5ba4c8;
+  --accent-purple: #a8a4d6;
+  --accent-teal: #a8e6cf;
+
+  --text-primary: #3e2a3c;
+  --text-secondary: #7a6a78;
+  --text-bubble: #ffffff;
+
+  --border: rgba(130, 130, 150, 0.25);
+  --shadow: 0 4px 24px rgba(120, 80, 110, 0.06);
+  --shadow-bubble: 0 2px 8px rgba(100, 60, 90, 0.08);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: var(--bg-gradient);
+}
+
+#app {
+  height: 100%;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+/* Markdown content styling */
+.markdown-body p {
+  margin: 0.3em 0;
+}
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  font-size: 0.85em;
+}
+.markdown-body code {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin: 0.3em 0;
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
