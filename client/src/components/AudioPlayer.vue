@@ -13,9 +13,10 @@ const { isPlaying, volume, currentTime, duration, currentUrl, togglePlay, setVol
 const isThisTrack = computed(() => currentUrl.value === props.audioUrl)
 const isThisPlaying = computed(() => isThisTrack.value && isPlaying.value)
 
-const progress = computed(() =>
-  duration.value > 0 ? (currentTime.value / duration.value) * 100 : 0
-)
+const progress = computed(() => {
+  if (!isThisPlaying.value) return 0
+  return duration.value > 0 ? (currentTime.value / duration.value) * 100 : 0
+})
 
 function formatTime(sec) {
   if (!isFinite(sec) || sec < 0) return '0:00'
