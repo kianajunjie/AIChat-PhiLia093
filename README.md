@@ -5,17 +5,15 @@
 <h1 align="center">昔涟 · 永恒的一页</h1>
 
 <p align="center">
-  一个 AI 角色扮演聊天应用，与「昔涟」对话 —— 哀丽秘榭的黄金裔，掌管三千万世轮回的故事记录者。
-</p>
-
-<p align="center">
-  <sub>新手尝试，还望海涵</sub>
+  AI 角色扮演聊天应用。与「昔涟」对话——哀丽秘榭的黄金裔，掌管三千万世轮回的故事记录者。
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs" alt="Vue 3" />
   <img src="https://img.shields.io/badge/Express-5-000000?logo=express" alt="Express 5" />
   <img src="https://img.shields.io/badge/DeepSeek-V4-4D6BFE" alt="DeepSeek" />
+  <img src="https://img.shields.io/badge/TTS-GPT--SoVITS--v2-FF6B6B" alt="GPT-SoVITS" />
+  <img src="https://img.shields.io/badge/语音-本地离线-green" alt="离线TTS" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT" />
 </p>
 
@@ -23,14 +21,14 @@
 
 ## 预览
 
-> 打开应用，在输入框中写下你想对昔涟说的话。她会用俏皮甜美的语气回应你，偶尔带上语音♪
+打开应用，在输入框中写下你想对昔涟说的话。她会用俏皮甜美的语气回应你，并自动配上本地生成的语音♪
 
 ## 功能
 
 | 模块 | 说明 |
 |------|------|
 | 角色扮演对话 | SSE 流式传输，AI 以昔涟的身份和语气实时回应 |
-| 语音合成 | Mimo API 语音克隆，支持昔涟原声及多种音色切换，可一键关闭。开启语音后回复加载时间会变长（需等待 TTS 合成） |
+| 本地语音合成 | GPT-SoVITS v2 微调模型，**完全离线**，3 秒生成一句 |
 | 昔涟的记忆簿 | 自动从对话中提取你的信息并持久化（上限 50 条），下次对话时自动注入上下文 |
 | 对话管理 | 多轮对话切换、自动标题、删除，全部存储在浏览器本地 |
 | 对话导出 | 一键导出为 Markdown / JSON / TXT，保存到本地 |
@@ -38,12 +36,22 @@
 
 ## 技术栈
 
+### 聊天应用
+
 ```
 Vue 3  ──  Composition API + Pinia + Vite 6
-Express 5  ──  SSE 流式代理 + TTS 路由
+Express 5  ──  SSE 流式代理 + 本地 TTS 路由
 DeepSeek API  ──  文本生成（stream）
-Mimo API  ──  语音克隆 / 合成
 markdown-it + highlight.js  ──  消息渲染
+```
+
+### 语音合成
+
+```
+GPT-SoVITS v2  ──  LoRA 微调，12 分钟训练数据
+SoVITS 模型  ──  声学模型（85MB）
+GPT 模型  ──  文本→语音映射（155MB）
+CPU 推理  ──  ~3 秒/句，完全离线
 ```
 
 ## 项目结构
@@ -60,8 +68,8 @@ ai-chat/
 │   └── public/              头像 · lore.json
 ├── server/                  Express 后端
 │   ├── routes/              /api/chat · /api/export · /api/character
-│   ├── services/            DeepSeek 流式 · Mimo TTS
-│   ├── middleware/           错误处理
+│   ├── services/            DeepSeek 流式 · 本地 TTS
+│   ├── middleware/          错误处理
 │   └── public/
 │       ├── audio/           生成的语音文件
 │       └── voice-samples/   语音克隆样本
@@ -70,6 +78,8 @@ ai-chat/
 ├── .env.example             环境变量模板
 └── package.json             Monorepo 启动脚本
 ```
+
+GPT-SoVITS 模型部署在独立目录 `D:\GPT-SoVITS\`，与项目分离。
 
 ## 快速开始
 
@@ -85,20 +95,29 @@ cp .env.example .env
 |------|------|------|
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | 是 |
 | `DEEPSEEK_MODEL` | 模型名称，默认 `deepseek-v4-pro` | 否 |
-| `MIMO_API_KEY` | Mimo TTS 密钥 | 否（不填则不启用语音） |
+| `LOCAL_TTS` | `true`=本地昔涟语音，`false`=Mimo API | 否 |
 
 ### 2. 安装 & 启动
 
 ```bash
 # 安装所有依赖
 npm run install:all
+```
 
-# 启动开发服务器
+#### 一键启动（推荐）
+
+双击 `启动昔涟.bat`，自动启动后端 + 前端，浏览器打开。
+
+#### 手动启动
+
+```bash
 npm run dev
 ```
 
 - 前端：`http://localhost:5173`
 - 后端：`http://localhost:3001`
+
+> 如果聊天记录消失了，检查浏览器地址栏是 `localhost` 还是 `127.0.0.1`，两者 localStorage 不互通，保持一致即可。
 
 ### 3. 生产构建
 
@@ -107,6 +126,33 @@ cd client && npm run build
 ```
 
 产物在 `client/dist/`。
+
+## 语音合成
+
+### 用命令行生成语音
+
+```cmd
+cd D:\GPT-SoVITS\GPT-SoVITS-v3lora-20250228
+echo 你想说的话 | runtime\python.exe xilian_infer.py
+```
+
+输出：`output/xilian_output.wav`
+
+### 模型训练流程
+
+1. **素材准备**：12 分钟昔涟语音 → UVR5 去 BGM → 语音切分 → ASR 转写 → 文本校对 → 74 条训练数据
+2. **SoVITS 训练**：7 epoch，CPU，输出 `xilian_e8_s320.pth`（85MB）
+3. **GPT 训练**：14 epoch，GPU，输出 `xilian-e10.ckpt`（155MB）
+4. **推理**：CPU 推理，~3 秒生成一句
+
+### 切换 TTS 模式
+
+`.env` 中设置：
+
+```env
+LOCAL_TTS=true   # 本地昔涟模型（离线，推荐）
+LOCAL_TTS=false  # Mimo API（需联网）
+```
 
 ## 自定义角色
 
@@ -136,8 +182,9 @@ cd client && npm run build
 1. 编辑根目录 `character.json`，填入新角色的设定和文案
 2. 替换 `client/public/avatars/ai-avatar.jpg` 为新角色头像
 3. 替换 `server/public/voice-samples/` 下的语音样本文件
-4. 编辑 `client/public/lore.json` 填入新角色的世界观知识库
-5. 重启应用
+4. 训练新角色的 GPT-SoVITS 模型 → 更新 `.env` 中的模型路径
+5. 编辑 `client/public/lore.json` 填入新角色的世界观知识库
+6. 重启应用
 
 全部改完即时生效，一滴代码不用碰。
 
@@ -153,16 +200,6 @@ cd client && npm run build
 ### 自定义世界观知识库
 
 编辑 `client/public/lore.json`，数组格式，每条包含触发关键词和知识条目即可。
-
-## 部署
-
-| 部分 | 推荐平台 | 注意 |
-|------|----------|------|
-| 前端 SPA | Vercel / Netlify / Cloudflare Pages | 静态托管即可 |
-| 后端 | Railway / Render / Fly.io | 需支持 SSE 长连接 |
-| 语音样本 | 随项目部署 | `voice-samples/` 约 4MB |
-
-> 整个后端不适合部署到 Vercel Serverless —— SSE 流式响应和 TTS 文件系统在 serverless 环境下均受限制。
 
 ## License
 

@@ -1,6 +1,11 @@
 import { Router } from 'express'
 import { streamDeepSeek } from '../services/deepseek.js'
-import { synthesizeSpeech } from '../services/mimoTTS.js'
+import { synthesizeSpeech as mimoSpeech } from '../services/mimoTTS.js'
+import { synthesizeSpeech as localSpeech } from '../services/localTTS.js'
+
+// 通过 .env 控制使用本地还是远程 TTS
+const USE_LOCAL_TTS = process.env.LOCAL_TTS === 'true'
+const synthesizeSpeech = USE_LOCAL_TTS ? localSpeech : mimoSpeech
 
 const router = Router()
 
