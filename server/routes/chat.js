@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { writeFileSync } from 'node:fs'
 import { streamDeepSeek } from '../services/deepseek.js'
 import { synthesizeSpeech as mimoSpeech } from '../services/mimoTTS.js'
 import { synthesizeSpeech as localSpeech } from '../services/localTTS.js'
@@ -41,6 +42,8 @@ router.post('/chat', async (req, res) => {
     // Synthesize speech after streaming completes
     let audioUrl = null
     let messageId = null
+    writeFileSync('D:/ai-chat/server/public/audio/_last_tts_text.txt', fullText, 'utf-8')
+
     if (!skipTts) {
       try {
         const result = await synthesizeSpeech(fullText, voice)
