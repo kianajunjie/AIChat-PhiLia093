@@ -4,3 +4,8 @@ dist/
 .claude/
 server/public/audio/*
 !server/public/audio/.gitkeep
+logs/
+weight.json
+TEMP/
+*.log
+*.tmp
